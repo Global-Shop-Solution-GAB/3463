@@ -1,0 +1,60 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: JCT
+'Project Start Date: 03/15/2011
+'Hook 28072
+'Other Components:
+'  ATG_ITMST_LEN_WIDTH.sql
+'Notes:
+'  updates ATG_ITMST_LEN_WIDTH table when Rolls are transferred between bins
+
+
+'part=000005
+'from bin=000009
+'to bin=000012
+V.Local.sSel.Declare(String)
+V.Local.sSelB.Declare(String)
+V.Local.sBin.Declare(String)
+V.Local.sSerial.Declare(String)
+
+'F.Intrinsic.Debug.InvokeDebugger
+
+F.ODBC.Connection!Con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.String.Concat("select distinct SERIAL_NUMBER, BIN from ITEM_MASTER where PART='",V.Passed.000005.Trim,"' and QUANTITY<>'0' order by SERIAL_NUMBER",V.Local.sSel)
+F.ODBC.Connection!Con.OpenRecordsetRO("rstA",V.Local.sSel)
+	F.Intrinsic.Control.DoUntil(V.ODBC.Con!rstA.EOF,=,True)
+		V.Local.sBin.Set(V.ODBC.Con!rstA.FieldValTrim!BIN)
+		V.Local.sSerial.Set(V.ODBC.Con!rstA.FieldValTrim!SERIAL_NUMBER)
+F.Intrinsic.Debug.Stop
+
+		F.Intrinsic.String.Concat("select BIN from ATG_ITMST_LEN_WIDTH where PART='",V.Passed.000005.Trim,"' and SERIAL='",V.Local.sSerial,"'",V.Local.sSelB)
+		F.ODBC.Connection!Con.OpenRecordsetRW("rstB",V.Local.sSelB)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstB.EOF,=,False)
+				F.ODBC.Con!rstB.Set!BIN(V.Local.sBin.Trim)
+				F.ODBC.Con!rstB.Update
+			F.Intrinsic.Control.EndIf
+		F.ODBC.Con!rstB.Close
+
+	F.ODBC.Con!rstA.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.Con!rstA.Close
+
+F.Intrinsic.Control.CallSub(Unload)
+
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+
+F.ODBC.Connection!Con.Close
+f.Intrinsic.Control.End
+
+Program.Sub.Unload.End
+
+
